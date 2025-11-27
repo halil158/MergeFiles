@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text;
-using System.Windows.Forms;
 
 namespace MergeFilesWinForms
 {
@@ -18,7 +13,8 @@ namespace MergeFilesWinForms
         private readonly Button btnEditAllow = new Button();
         private readonly Button btnEditIgnore = new Button();
         private readonly Label lblCount = new Label();
-
+        private readonly Label lblPrefix = new Label();
+        private readonly TextBox txtPrefix = new TextBox();
         // Durum
         private readonly List<string> _files = new List<string>();
 
@@ -120,10 +116,28 @@ namespace MergeFilesWinForms
             lblCount.Top = lstFiles.Bottom + 10;
             lblCount.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             UpdateCount();
+            lblPrefix.AutoSize = true;
+            lblPrefix.Text = "Dosya adý ön eki:";
+            lblPrefix.Left = lblCount.Right + 20;
+            lblPrefix.Top = lblCount.Top;
+            lblPrefix.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
+            txtPrefix.Width = 180;
+            txtPrefix.Left = lblPrefix.Right + 5;
+            txtPrefix.Top = lblPrefix.Top - 3;
+            txtPrefix.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            txtPrefix.Text = "SolionBMS";
             Controls.AddRange(new Control[] {
-                lstFiles, btnMerge, btnAddFolder, btnRemoveSelected, btnClear,
-                btnEditAllow, btnEditIgnore, lblCount
+                lstFiles,
+                btnMerge,
+                btnAddFolder,
+                btnRemoveSelected,
+                btnClear,
+                btnEditAllow,
+                btnEditIgnore,
+                lblCount,
+                lblPrefix,
+                txtPrefix
             });
 
             // Resize
@@ -190,7 +204,7 @@ namespace MergeFilesWinForms
                 {
                     try
                     {
-                        foreach (var f in Directory.EnumerateFiles(p, "*.*", SearchOption.AllDirectories))
+                        foreach (var f in Directory.EnumerateFiles(p, "*.*", SearchOption.AllDirectories).OrderBy(c => c))
                         {
                             if (IsAllowed(f) && !IsIgnored(f))
                                 AddIfNew(f);
@@ -246,10 +260,60 @@ namespace MergeFilesWinForms
         private bool IsAllowed(string path)
             => GetAllowedExt().Contains(Path.GetExtension(path) ?? string.Empty);
 
+        private static readonly char[] _seps = new[] { '\\', '/' };
+
         private bool IsIgnored(string path)
         {
-            var lower = path.ToLowerInvariant();
-            return GetIgnoredFolders().Any(ig => lower.Contains(ig.ToLowerInvariant()));
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            var segments = Path.GetFullPath(path)
+                               .TrimEnd(_seps)
+                               .ToLowerInvariant()
+                               .Split(_seps, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var raw in GetIgnoredFolders())
+            {
+                if (string.IsNullOrWhiteSpace(raw)) continue;
+
+                var ruleSegs = raw.Replace('\\', '/')
+                                  .Trim('/')
+                                  .ToLowerInvariant()
+                                  .Split('/', StringSplitOptions.RemoveEmptyEntries);
+
+                if (ruleSegs.Length == 0) continue;
+
+                if (ruleSegs.Length == 1)
+                {
+                    if (segments.Any(s => s == ruleSegs[0]))
+                        return true;
+                }
+                else
+                {
+                    if (ContainsSubsequence(segments, ruleSegs))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ContainsSubsequence(string[] haystack, string[] needle)
+        {
+            for (int i = 0; i <= haystack.Length - needle.Length; i++)
+            {
+                bool ok = true;
+                for (int j = 0; j < needle.Length; j++)
+                {
+                    if (!haystack[i + j].Equals(needle[j], StringComparison.OrdinalIgnoreCase))
+                    {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) return true;
+            }
+            return false;
         }
 
         private void AddIfNew(string path)
@@ -283,12 +347,23 @@ namespace MergeFilesWinForms
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
+            var prefix = txtPrefix.Text?.Trim();
+            if (string.IsNullOrWhiteSpace(prefix))
+            {
+                MessageBox.Show(this, "Lütfen dosya adý için bir ön ek girin.", "Uyarý",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtPrefix.Focus();
+                return;
+            }
+            foreach (var ch in System.IO.Path.GetInvalidFileNameChars())
+                prefix = prefix.Replace(ch, '_');
 
+            var fileName = $"{prefix}{DateTime.Now.ToString("yyMMddhhmm")}";
             using var sfd = new SaveFileDialog
             {
                 Title = "Birleþtirilmiþ dosyayý kaydet",
                 Filter = "Metin Dosyasý|*.txt|Tümü|*.*",
-                FileName = "MergedFiles.txt",
+                FileName = fileName,
                 OverwritePrompt = true
             };
             if (sfd.ShowDialog(this) != DialogResult.OK) return;
@@ -321,7 +396,7 @@ namespace MergeFilesWinForms
             {
                 System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{sfd.FileName}\"");
             }
-            catch { }            
+            catch { }
         }
 
         private static Encoding DetectEncoding(string filePath)
