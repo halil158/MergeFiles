@@ -12,15 +12,17 @@ namespace MergeFilesWinForms
         private readonly Button btnClear = new Button();
         private readonly Button btnEditAllow = new Button();
         private readonly Button btnEditIgnore = new Button();
+        private readonly Button btnEditInclude = new Button();
         private readonly Label lblCount = new Label();
         private readonly Label lblPrefix = new Label();
         private readonly TextBox txtPrefix = new TextBox();
         // Durum
         private readonly List<string> _files = new List<string>();
 
-        // Config dosyalarý
+        // Config dosyalarÄ±
         private readonly string allowFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "allow.txt");
         private readonly string ignoreFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ignore.txt");
+        private readonly string includeFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "include.txt");
 
         public Form1()
         {
@@ -48,6 +50,16 @@ namespace MergeFilesWinForms
                     "bin","obj","node_modules","wwwroot/vendor"
                 });
             }
+
+            if (!File.Exists(includeFile))
+            {
+                File.WriteAllLines(includeFile, new[]
+                {
+                    "# Ignore edilen klasÃ¶rlerdeki spesifik dosyalarÄ± dahil etmek iÃ§in",
+                    "# GÃ¶receli yol kullanÄ±n (Ã¶rnek: build/zephyr/zephyr.dts)",
+                    ""
+                });
+            }
         }
 
         private void BuildUi()
@@ -64,69 +76,80 @@ namespace MergeFilesWinForms
             lstFiles.Left = 10;
             lstFiles.Top = 10;
             lstFiles.Width = ClientSize.Width - 20;
-            lstFiles.Height = ClientSize.Height - 160;
+            lstFiles.Height = ClientSize.Height - 190;
             lstFiles.BorderStyle = BorderStyle.FixedSingle;
 
-            // Butonlar
-            btnMerge.Text = "Birleþtir (MergedFiles.txt)";
-            btnMerge.Width = 220;
-            btnMerge.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            btnMerge.Left = ClientSize.Width - btnMerge.Width - 10;
-            btnMerge.Top = ClientSize.Height - 50;
-            btnMerge.Click += (s, e) => SaveCombined();
-
-            btnAddFolder.Text = "Klasör Ekle";
-            btnAddFolder.Width = 120;
+            // Ãœst satÄ±r butonlarÄ± (dosya iÅŸlemleri)
+            btnAddFolder.Text = "KlasÃ¶r Ekle";
+            btnAddFolder.Width = 100;
             btnAddFolder.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnAddFolder.Left = 10;
-            btnAddFolder.Top = ClientSize.Height - 50;
+            btnAddFolder.Top = ClientSize.Height - 80;
             btnAddFolder.Click += (s, e) => AddFolder();
 
-            btnRemoveSelected.Text = "Seçileni Kaldýr";
-            btnRemoveSelected.Width = 140;
+            btnRemoveSelected.Text = "SeÃ§ileni KaldÄ±r";
+            btnRemoveSelected.Width = 110;
             btnRemoveSelected.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnRemoveSelected.Left = btnAddFolder.Right + 10;
             btnRemoveSelected.Top = btnAddFolder.Top;
             btnRemoveSelected.Click += (s, e) => RemoveSelected();
 
             btnClear.Text = "Temizle";
-            btnClear.Width = 100;
+            btnClear.Width = 80;
             btnClear.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             btnClear.Left = btnRemoveSelected.Right + 10;
             btnClear.Top = btnAddFolder.Top;
             btnClear.Click += (s, e) => { _files.Clear(); RefreshList(); };
 
-            btnEditAllow.Text = "Allow.txt Düzenle";
-            btnEditAllow.Width = 150;
-            btnEditAllow.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnEditAllow.Left = btnClear.Right + 10;
-            btnEditAllow.Top = btnAddFolder.Top;
-            btnEditAllow.Click += (s, e) => OpenFile(allowFile);
-
-            btnEditIgnore.Text = "Ignore.txt Düzenle";
-            btnEditIgnore.Width = 150;
-            btnEditIgnore.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-            btnEditIgnore.Left = btnEditAllow.Right + 10;
-            btnEditIgnore.Top = btnAddFolder.Top;
-            btnEditIgnore.Click += (s, e) => OpenFile(ignoreFile);
-
-            // Sayaç
+            // SayaÃ§ ve prefix (Ã¼st satÄ±rda)
             lblCount.AutoSize = true;
-            lblCount.Left = 10;
-            lblCount.Top = lstFiles.Bottom + 10;
+            lblCount.Left = btnClear.Right + 20;
+            lblCount.Top = btnAddFolder.Top + 5;
             lblCount.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             UpdateCount();
+
             lblPrefix.AutoSize = true;
-            lblPrefix.Text = "Dosya adý ön eki:";
+            lblPrefix.Text = "Dosya adÄ± Ã¶n eki:";
             lblPrefix.Left = lblCount.Right + 20;
-            lblPrefix.Top = lblCount.Top;
+            lblPrefix.Top = btnAddFolder.Top + 5;
             lblPrefix.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
 
-            txtPrefix.Width = 180;
+            txtPrefix.Width = 150;
             txtPrefix.Left = lblPrefix.Right + 5;
-            txtPrefix.Top = lblPrefix.Top - 3;
+            txtPrefix.Top = btnAddFolder.Top + 2;
             txtPrefix.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
             txtPrefix.Text = "SolionBMS";
+
+            // Alt satÄ±r butonlarÄ± (config dosyalarÄ±)
+            btnEditAllow.Text = "Allow.txt";
+            btnEditAllow.Width = 100;
+            btnEditAllow.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnEditAllow.Left = 10;
+            btnEditAllow.Top = ClientSize.Height - 45;
+            btnEditAllow.Click += (s, e) => OpenFile(allowFile);
+
+            btnEditIgnore.Text = "Ignore.txt";
+            btnEditIgnore.Width = 100;
+            btnEditIgnore.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnEditIgnore.Left = btnEditAllow.Right + 10;
+            btnEditIgnore.Top = btnEditAllow.Top;
+            btnEditIgnore.Click += (s, e) => OpenFile(ignoreFile);
+
+            btnEditInclude.Text = "Include.txt";
+            btnEditInclude.Width = 100;
+            btnEditInclude.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+            btnEditInclude.Left = btnEditIgnore.Right + 10;
+            btnEditInclude.Top = btnEditAllow.Top;
+            btnEditInclude.Click += (s, e) => OpenFile(includeFile);
+
+            // BirleÅŸtir butonu (saÄŸ alt)
+            btnMerge.Text = "BirleÅŸtir";
+            btnMerge.Width = 150;
+            btnMerge.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            btnMerge.Left = ClientSize.Width - btnMerge.Width - 10;
+            btnMerge.Top = ClientSize.Height - 45;
+            btnMerge.Click += (s, e) => SaveCombined();
+
             Controls.AddRange(new Control[] {
                 lstFiles,
                 btnMerge,
@@ -135,6 +158,7 @@ namespace MergeFilesWinForms
                 btnClear,
                 btnEditAllow,
                 btnEditIgnore,
+                btnEditInclude,
                 lblCount,
                 lblPrefix,
                 txtPrefix
@@ -144,15 +168,18 @@ namespace MergeFilesWinForms
             Resize += (s, e) =>
             {
                 lstFiles.Width = ClientSize.Width - 20;
-                lstFiles.Height = ClientSize.Height - 160;
+                lstFiles.Height = ClientSize.Height - 190;
                 btnMerge.Left = ClientSize.Width - btnMerge.Width - 10;
-                btnMerge.Top = ClientSize.Height - 50;
-                btnAddFolder.Top = ClientSize.Height - 50;
-                btnRemoveSelected.Top = ClientSize.Height - 50;
-                btnClear.Top = ClientSize.Height - 50;
-                btnEditAllow.Top = ClientSize.Height - 50;
-                btnEditIgnore.Top = ClientSize.Height - 50;
-                lblCount.Top = lstFiles.Bottom + 10;
+                btnMerge.Top = ClientSize.Height - 45;
+                btnAddFolder.Top = ClientSize.Height - 80;
+                btnRemoveSelected.Top = ClientSize.Height - 80;
+                btnClear.Top = ClientSize.Height - 80;
+                btnEditAllow.Top = ClientSize.Height - 45;
+                btnEditIgnore.Top = ClientSize.Height - 45;
+                btnEditInclude.Top = ClientSize.Height - 45;
+                lblCount.Top = ClientSize.Height - 75;
+                lblPrefix.Top = ClientSize.Height - 75;
+                txtPrefix.Top = ClientSize.Height - 78;
             };
         }
 
@@ -206,17 +233,17 @@ namespace MergeFilesWinForms
                     {
                         foreach (var f in Directory.EnumerateFiles(p, "*.*", SearchOption.AllDirectories).OrderBy(c => c))
                         {
-                            if (IsAllowed(f) && !IsIgnored(f))
+                            if (IsAllowed(f) && (IsIncluded(f) || !IsIgnored(f)))
                                 AddIfNew(f);
                         }
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(this, $"Klasör okunamadý: {p}\n{ex.Message}", "Hata",
+                        MessageBox.Show(this, $"KlasÃ¶r okunamadÄ±: {p}\n{ex.Message}", "Hata",
                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
-                else if (File.Exists(p) && IsAllowed(p) && !IsIgnored(p))
+                else if (File.Exists(p) && IsAllowed(p) && (IsIncluded(p) || !IsIgnored(p)))
                 {
                     AddIfNew(p);
                 }
@@ -255,6 +282,46 @@ namespace MergeFilesWinForms
             {
                 return new List<string>();
             }
+        }
+
+        private List<string> GetIncludedPaths()
+        {
+            try
+            {
+                return File.ReadAllLines(includeFile)
+                    .Where(l => !string.IsNullOrWhiteSpace(l) && !l.TrimStart().StartsWith("#"))
+                    .Select(l => l.Trim())
+                    .ToList();
+            }
+            catch
+            {
+                return new List<string>();
+            }
+        }
+
+        private bool IsIncluded(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            var normalizedPath = Path.GetFullPath(path)
+                                     .Replace('\\', '/')
+                                     .ToLowerInvariant();
+
+            foreach (var rule in GetIncludedPaths())
+            {
+                if (string.IsNullOrWhiteSpace(rule)) continue;
+
+                var normalizedRule = rule.Replace('\\', '/')
+                                         .Trim('/')
+                                         .ToLowerInvariant();
+
+                // Yolun sonunda bu kural var mÄ±? (suffix match)
+                if (normalizedPath.EndsWith("/" + normalizedRule, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
         }
 
         private bool IsAllowed(string path)
@@ -343,14 +410,14 @@ namespace MergeFilesWinForms
         {
             if (_files.Count == 0)
             {
-                MessageBox.Show(this, "Birleþtirilecek dosya yok.", "Uyarý",
+                MessageBox.Show(this, "BirleÅŸtirilecek dosya yok.", "UyarÄ±",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
             var prefix = txtPrefix.Text?.Trim();
             if (string.IsNullOrWhiteSpace(prefix))
             {
-                MessageBox.Show(this, "Lütfen dosya adý için bir ön ek girin.", "Uyarý",
+                MessageBox.Show(this, "LÃ¼tfen dosya adÄ± iÃ§in bir Ã¶n ek girin.", "UyarÄ±",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 txtPrefix.Focus();
                 return;
@@ -361,8 +428,8 @@ namespace MergeFilesWinForms
             var fileName = $"{prefix}{DateTime.Now.ToString("yyMMddhhmm")}";
             using var sfd = new SaveFileDialog
             {
-                Title = "Birleþtirilmiþ dosyayý kaydet",
-                Filter = "Metin Dosyasý|*.txt|Tümü|*.*",
+                Title = "BirleÅŸtirilmiÅŸ dosyayÄ± kaydet",
+                Filter = "Metin DosyasÄ±|*.txt|TÃ¼mÃ¼|*.*",
                 FileName = fileName,
                 OverwritePrompt = true
             };
@@ -388,7 +455,7 @@ namespace MergeFilesWinForms
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"Kaydetme hatasý: {ex.Message}", "Hata",
+                MessageBox.Show(this, $"Kaydetme hatasÄ±: {ex.Message}", "Hata",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
@@ -423,7 +490,7 @@ namespace MergeFilesWinForms
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, $"Dosya açýlamadý: {ex.Message}", "Hata",
+                MessageBox.Show(this, $"Dosya aÃ§Ä±lamadÄ±: {ex.Message}", "Hata",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
