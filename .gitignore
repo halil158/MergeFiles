@@ -418,3 +418,6 @@ FodyWeavers.xsd
 *.msp
 
 .claude/*
+
+# Website/docs folder (hosted separately)
+docs/
