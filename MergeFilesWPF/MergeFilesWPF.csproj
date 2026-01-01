@@ -10,7 +10,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Resource Include="app.ico" />
+    <Resource Include="app.ico">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
 </Project>
