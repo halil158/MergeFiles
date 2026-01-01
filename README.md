@@ -91,9 +91,11 @@ Files included:
 
 ### WPF Version (Dark Theme)
 Modern UI with dark theme, hover effects, and drag & drop animations.
+![WPF Version](screenshots/MergeFilesWPF.png)
 
 ### WinForms Version
 Classic Windows Forms interface.
+![WinForms Version](screenshots/MergeFilesWinForms.png)
 
 ## Build
 
